@@ -93,20 +93,23 @@ def insert_session(db, session_id, location_id, username):
         db.rollback()
         return False
 
-def insert_interest(db, session_id, keywords):
-    cursor = db.cursor()
-    sql = "INSERT INTO interest(sessionid) VALUES ('%s')" % session_id
+def insert_interest(db, session_id, keywords, domain):
     try:
-        cursor.execute(sql)
-        db.commit()
-        interest_id = cursor.lastrowid
-        for keyword in keywords:
-            insert_keyword(db, interest_id, keyword)
-        return True
-    except:
-        print "Unexpected error:", sys.exc_info()
-        db.rollback()
-        return False
+        domain_id = insert_domain(db, domain)
+    finally:
+        cursor = db.cursor()
+        sql = "INSERT INTO interest(sessionid, domainid) VALUES ('%s', '%d')" % (session_id, domain_id)
+        try:
+            cursor.execute(sql)
+            db.commit()
+            interest_id = cursor.lastrowid
+            for keyword in keywords:
+                insert_keyword(db, interest_id, keyword)
+            return True
+        except:
+            print "Unexpected error:", sys.exc_info()
+            db.rollback()
+            return False
 
 def insert_keyword(db, interest_id, keyword):
     cursor = db.cursor()
@@ -167,7 +170,7 @@ def handle_interest():
     db = get_database()
     if verify_user(user_id):
         insert_session(db, session_id, location_id, user_id)
-        insert_interest(db, session_id, interest['interest'])
+        insert_interest(db, session_id, interest['interest'], interest['domain'])
     db.close()
     return 'ok'
 
